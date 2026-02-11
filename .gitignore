@@ -1,0 +1,8 @@
+.env
+__pycache__
+.venv
+.ipynb_checkpoints
+.chroma
+.chroma_hash
+eval_results.jsonl
+ragas_results.jsonl

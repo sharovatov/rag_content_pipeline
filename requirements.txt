@@ -1,0 +1,7 @@
+chromadb
+datasets
+langchain-chroma
+langchain-core
+langchain-openai
+python-dotenv
+ragas
