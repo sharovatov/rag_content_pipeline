@@ -27,7 +27,8 @@ def main() -> None:
     parser.add_argument("--input", nargs="+", default=DEFAULT_INPUTS)
     parser.add_argument("--eval", default="eval_blog_ideas.jsonl")
     parser.add_argument("--output", default="ragas_results.jsonl")
-    parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument("--limit", type=int, default=None,
+                        help="Max number of questions to evaluate")
     parser.add_argument("--k", type=int, default=8)
     parser.add_argument("--model", default="gpt-4o-mini")
     parser.add_argument("--embedding-model", default="text-embedding-3-large")
@@ -37,8 +38,10 @@ def main() -> None:
     if not os.environ.get("OPENAI_API_KEY"):
         raise RuntimeError("OPENAI_API_KEY is not set in the environment.")
 
-    # Count eval questions
+    # Load eval questions
     eval_rows = list(iter_eval_rows(args.eval))
+    if args.limit:
+        eval_rows = eval_rows[:args.limit]
     print(f"Loaded {len(eval_rows)} questions from {args.eval}")
 
     # Build vector store
@@ -46,7 +49,6 @@ def main() -> None:
     vector_store = build_vector_store(
         input_paths=args.input,
         embedding_model=args.embedding_model,
-        limit=args.limit,
     )
 
     prompt = build_prompt()

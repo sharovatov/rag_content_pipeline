@@ -46,14 +46,12 @@ cp .env.example .env
 ### Run evaluation
 
 ```bash
-# RAGAS evaluation (240 questions)
-.venv/bin/python rag_eval.py --eval eval_blog_ideas.jsonl
+# Quick smoke test (5 questions, ~30 seconds, ~$0.01)
+.venv/bin/python rag_eval.py --limit 5
 
-# Simple LLM-judge evaluation
-.venv/bin/python rag_eval_simple.py --eval eval_blog_ideas.jsonl
+# Full suite (240 questions, ~25 minutes, ~$0.60)
+.venv/bin/python rag_eval.py
 ```
-
-The full 240-question suite takes ~25 minutes on gpt-4o-mini and costs ~$0.60.
 
 ## Data
 
