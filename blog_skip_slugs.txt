@@ -1,0 +1,90 @@
+# Blog posts to exclude from RAG corpus.
+# One slug per line. Lines starting with # are comments.
+# Reviewed 2026-02-13: 50 skipped out of 156 total.
+
+# Case studies
+bitly-qase-case-study
+elgato-qase
+how-suse-matured-qa-with-qase
+isento-qase-case-study
+
+# Product updates
+q2-2025-qase-product-updates
+qase-august-2025-updates
+whats-new-in-qase-july-2025
+whats-new-in-qase-product-update-may-2025-more-ways-to-ship-quality
+global-shared-parameters
+
+# Meetup recaps and conference recaps
+august-2025-quality-engineering-meetup-in-berlin
+quality-engineering-berlin-june-2025-meetup
+quality-engineering-meetup-in-helsinki-june-2024
+selenium-conference-chicago-2023
+
+# Mixtape interviews
+mixtape-eric-terry
+mixtape-janet-gregory
+mixtape-lena-pejgan
+
+# Recruiter / career advice (guest author)
+get-noticed-by-qa-job-recruiters
+prepare-for-a-qa-role-recruiter-screen
+qa-interview-questions-recruiter-screen
+
+# Dated AI opinion pieces
+ai-monthly-05-23
+ai-quality
+chatgpt-4
+chatgpt-and-propaganda
+
+# Sketch notes / lightweight opinion
+automation-will-not-replace-us-sketch-notes
+navigating-the-murky-waters-of-dark-patterns
+power-of-example-mapping
+
+# Duplicate / overlapping guides (kept the stronger version)
+ai-test-automation-emerging
+ai-test-automation-hype
+ai-test-automation-what-works
+monkey-testing
+ai-test-automation-faqs
+best-test-management-tools
+the-best-test-management-tools-of-2023
+code-review-best-practices
+code-review-checklist
+test-pyramid
+the-qa-role-is-changing
+unit-testing
+
+# Generic SEO guides / tool-specific tutorials (no original claims)
+a-comprehensive-guide-to-api-testing-best-practices-tools-challenges-and-more
+mocha-jest-test-automation-base
+
+# Light opinion / trivia / duplicate coverage
+buggy-world
+interesting-software-testing-terms
+
+# Product feature docs / integration tutorials
+capturing-database-queries-in-tests-with-qase
+integrating-appium-with-qase-for-test-reporting
+integrating-qase-with-playwright
+intercepting-http-requests-in-tests-with-qase
+intercepting-sleep-calls-in-tests
+
+# Other skips
+a-qa-engineers-bug-investigation
+creating-your-professional-persona
+heuristics-and-software-testing
+how-to-choose-test-automation-tool
+how-to-prepare-for-a-qa-interview-as-a-candidate
+integrating-qase-with-selenium
+qase-studies-let-me-find-out
+software-release-process
+software-testing-books
+sunk-cost-fallacy-is-sinking-your-tool-stack
+three-pillars-of-managing-testing-artifacts
+to-automate-or-not-to-automate
+what-happens-when-we-turn-our-users-into-a-qa-department
+what-is-software-testing
+why-is-bug-reporting-so-difficult
+working-with-requirements-in-testing

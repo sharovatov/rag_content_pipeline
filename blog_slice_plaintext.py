@@ -5,6 +5,7 @@ from typing import Iterable, List, Tuple
 
 INPUT_FILE = "blog_plain.json"
 OUTPUT_FILE = "blog_chunks.jsonl"
+SKIP_SLUGS_FILE = "blog_skip_slugs.txt"
 
 MIN_TOKENS = 400
 MAX_TOKENS = 800
@@ -135,10 +136,27 @@ def iter_posts(input_file: str) -> Iterable[Tuple[str, str]]:
             yield slug, text
 
 
+def load_skip_slugs(path: str) -> set:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return {
+                line.strip()
+                for line in f
+                if line.strip() and not line.strip().startswith("#")
+            }
+    except FileNotFoundError:
+        return set()
+
+
 def main() -> None:
+    skip_slugs = load_skip_slugs(SKIP_SLUGS_FILE)
     total_chunks = 0
+    skipped = 0
     with open(OUTPUT_FILE, "w", encoding="utf-8") as out:
         for slug, text in iter_posts(INPUT_FILE):
+            if slug in skip_slugs:
+                skipped += 1
+                continue
             sections = merge_small_sections(split_sections(text))
             for section in sections:
                 chunks = chunk_text(section)
@@ -147,6 +165,8 @@ def main() -> None:
                     out.write(json.dumps(record, ensure_ascii=False) + "\n")
                     total_chunks += 1
     print(f"Wrote {total_chunks} chunks to {OUTPUT_FILE}")
+    if skip_slugs:
+        print(f"Skipped {skipped} posts by slug ({SKIP_SLUGS_FILE})")
 
 
 if __name__ == "__main__":
