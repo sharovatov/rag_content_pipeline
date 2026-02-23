@@ -9,7 +9,7 @@ RAG-based content verification pipeline. Checks new content against an existing 
 - **`voice_check.py`** — Check an article against brand voice & tone guidelines. Single LLM call, no RAG
 - **`rag_eval.py`** — RAGAS evaluation (faithfulness + context recall)
 - **`rag_eval_simple.py`** — Simple LLM-judge evaluation (aligned / not aligned)
-- **`blog_slice_plaintext.py`** — Semantic chunker for preparing your own content corpus
+- **`blog_slice_plaintext.py`** — Semantic chunker for preparing your own content corpus (respects `blog_skip_slugs.txt` to exclude posts)
 
 ## Setup
 
@@ -46,20 +46,23 @@ cp .env.example .env
 ### Run evaluation
 
 ```bash
-# RAGAS evaluation (faithfulness + context recall)
-.venv/bin/python rag_eval.py --eval eval_dataset.jsonl
+# RAGAS evaluation (240 questions)
+.venv/bin/python rag_eval.py --eval eval_blog_ideas.jsonl
 
 # Simple LLM-judge evaluation
-.venv/bin/python rag_eval_simple.py --eval eval_dataset.jsonl
+.venv/bin/python rag_eval_simple.py --eval eval_blog_ideas.jsonl
 ```
+
+The full 240-question suite takes ~25 minutes on gpt-4o-mini and costs ~$0.60.
 
 ## Data
 
 The repo includes pre-chunked content from publicly available sources:
 
-- **`blog_chunks.jsonl`** — Qase blog posts
+- **`blog_chunks.jsonl`** — Qase blog posts (106 posts, 50 excluded via `blog_skip_slugs.txt`)
 - **`help_chunks.jsonl`** — Qase help center articles
-- **`eval_dataset.jsonl`** — Hand-written ground truths for evaluation
+- **`blog_skip_slugs.txt`** — Blog posts excluded from the corpus (case studies, product updates, dated pieces, duplicates)
+- **`eval_blog_ideas.jsonl`** — 240 eval questions generated from blog key ideas
 - **`qase_voice_tone.md`** — Qase brand voice & tone guidelines
 
 ## Using your own content
@@ -67,8 +70,9 @@ The repo includes pre-chunked content from publicly available sources:
 To use this with your own content corpus:
 
 1. Prepare a JSON file with your content in the format `[{"slug": "plaintext"}, ...]`
-2. Run `blog_slice_plaintext.py` to chunk it (edit `INPUT_FILE` and `OUTPUT_FILE` as needed)
-3. Point the scripts at your chunks: `.venv/bin/python rag_verify.py article.txt --input your_chunks.jsonl`
+2. Optionally create a `blog_skip_slugs.txt` with slugs to exclude (one per line, `#` for comments)
+3. Run `blog_slice_plaintext.py` to chunk it (edit `INPUT_FILE` and `OUTPUT_FILE` as needed)
+4. Point the scripts at your chunks: `.venv/bin/python rag_verify.py article.txt --input your_chunks.jsonl`
 
 ## Architecture
 

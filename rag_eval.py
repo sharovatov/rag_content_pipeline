@@ -25,7 +25,7 @@ def iter_eval_rows(path: str) -> Iterable[Dict]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Ragas evaluation runner.")
     parser.add_argument("--input", nargs="+", default=DEFAULT_INPUTS)
-    parser.add_argument("--eval", default="eval_dataset.jsonl")
+    parser.add_argument("--eval", default="eval_blog_ideas.jsonl")
     parser.add_argument("--output", default="ragas_results.jsonl")
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--k", type=int, default=8)

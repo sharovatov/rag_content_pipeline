@@ -38,7 +38,7 @@ Respond with JSON only:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Simple RAG evaluation.")
     parser.add_argument("--input", nargs="+", default=DEFAULT_INPUTS)
-    parser.add_argument("--eval", default="eval_dataset.jsonl")
+    parser.add_argument("--eval", default="eval_blog_ideas.jsonl")
     parser.add_argument("--output", default="eval_results.jsonl")
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--k", type=int, default=8)
