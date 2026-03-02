@@ -88,17 +88,15 @@ def build_prompt() -> PromptTemplate:
     return PromptTemplate(
         input_variables=["question", "context"],
         template=(
-            "Act as a conversational interface for answering questions based on the "
-            "content of the Qase blog and help center in your knowledge base.\n\n"
+            "Answer the question using ONLY the context below. "
+            "Do not use your own knowledge. If the context does not contain enough information "
+            "to answer the question, say: 'This is not covered in our knowledge base.'\n\n"
             "Do not include any links; the system will append sources.\n"
-            "When content related to a specific topic doesn't exist, return no results.\n"
-            "Merely retrieve insights or content from the knowledge base, without adding anything.\n"
-            "Do not exude confidence.\n"
-            "When uncertain, state so and estimate confidence.\n"
-            "Refer to yourself as 'the model' or 'the system' rather than 'I'.\n"
+            "Do not guess or fill in gaps. Partial answers are better than made-up answers.\n"
+            "When uncertain, state so.\n"
             "Explicitly list assumptions made.\n\n"
+            "Context: {context}\n\n"
             "Question: {question}\n"
-            "Context: {context}\n"
             "Answer:\n"
         ),
     )
