@@ -1,7 +1,10 @@
-chromadb
-datasets
-langchain-chroma
-langchain-core
-langchain-openai
-python-dotenv
-ragas
+# Prefer Python 3.12 for this environment
+chromadb==0.5.23
+datasets==4.7.0
+langchain==0.2.17
+langchain-chroma==0.1.4
+langchain-community==0.2.19
+langchain-core==0.2.43
+langchain-openai==0.1.25
+python-dotenv==1.2.2
+ragas==0.3.9
