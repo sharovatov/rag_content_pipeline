@@ -24,8 +24,13 @@ cp .env.example .env
 
 ### Ask questions to the corpus
 
+The following command will ask a question with default argument values:
 ```bash
 .venv/bin/python rag_ask_qn.py --question "What are test suites in Qase?"
+```
+
+The following command will ask a question with 5 similar chunks, and with the model set to gpt-4o:
+```bash
 .venv/bin/python rag_ask_qn.py --k 5 --model gpt-4o
 ```
 
