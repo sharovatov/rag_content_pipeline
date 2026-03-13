@@ -52,6 +52,21 @@ def split_text_into_paragraphs(text: str) -> str:
     print(f"Text has {len(paragraphs)} paragraph(s)\n")
     return paragraphs
 
+def retrieve_relevant_chunks(vector_store, text: str, paragraphs: list[str], k: int) -> list[str]:
+    if len(paragraphs) <= 1:
+        return vector_store.similarity_search(text, k=k)
+    else:
+        print(f"Retrieving relevant chunks per paragraph...\n")
+        seen_ids = set()
+        retrieved_docs = []
+        for para in paragraphs:
+            para_docs = vector_store.similarity_search(para, k=k)
+
+            for doc in para_docs:
+                if doc.id not in seen_ids:
+                    seen_ids.add(doc.id)
+                    retrieved_docs.append(doc)
+        return retrieved_docs
 
 
 def main() -> None:
@@ -70,27 +85,16 @@ def main() -> None:
         raise RuntimeError("OPENAI_API_KEY is not set in the environment.")
 
     text = read_input_file(args.file)
-    paragraphs = split_text_into_paragraphs(args.file)
+    paragraphs = split_text_into_paragraphs(text)
 
-    print(f"Verifying text from {args.file} ({len(paragraphs)} paragraphs)\n")
+    print(f"Verifying text from {args.file} ({len(text)} characters)\n")
 
     vector_store = build_vector_store(
         input_paths=args.input,
         embedding_model=args.embedding_model,limit=args.limit,
     )
 
-    if len(paragraphs) <= 1:
-        retrieved_docs = vector_store.similarity_search(text, k=args.k)
-    else:
-        print(f"Text has {len(paragraphs)} paragraphs, retrieving per paragraph...\n")
-        seen_ids = set()
-        retrieved_docs = []
-        for para in paragraphs:
-            para_docs = vector_store.similarity_search(para, k=args.k)
-            for doc in para_docs:
-                if doc.id not in seen_ids:
-                    seen_ids.add(doc.id)
-                    retrieved_docs.append(doc)
+    retrieved_docs = retrieve_relevant_chunks(vector_store, text, paragraphs, args.k)
 
     if not retrieved_docs:
         print("No relevant sources found in the corpus.")
