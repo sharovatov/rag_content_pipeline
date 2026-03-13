@@ -40,6 +40,19 @@ Respond with JSON only:
   "overall": "brief overall assessment"
 }}"""
 
+def read_input_file(file: str) -> str:
+    with open(file, "r", encoding="utf-8") as f:
+        text = f.read().strip()
+    if not text:
+        raise RuntimeError("Input file is empty.")
+    return text
+
+def split_text_into_paragraphs(text: str) -> str:
+    paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+    print(f"Text has {len(paragraphs)} paragraph(s)\n")
+    return paragraphs
+
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Verify text claims against RAG corpus.")
@@ -56,21 +69,15 @@ def main() -> None:
     if not os.environ.get("OPENAI_API_KEY"):
         raise RuntimeError("OPENAI_API_KEY is not set in the environment.")
 
-    with open(args.file, "r", encoding="utf-8") as f:
-        text = f.read().strip()
-    if not text:
-        raise RuntimeError("Input file is empty.")
+    text = read_input_file(args.file)
+    paragraphs = split_text_into_paragraphs(args.file)
 
-    print(f"Verifying text from {args.file} ({len(text)} chars)\n")
+    print(f"Verifying text from {args.file} ({len(paragraphs)} paragraphs)\n")
 
     vector_store = build_vector_store(
         input_paths=args.input,
-        embedding_model=args.embedding_model,
-        limit=args.limit,
+        embedding_model=args.embedding_model,limit=args.limit,
     )
-
-    # Adaptive retrieval: split into paragraphs
-    paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
 
     if len(paragraphs) <= 1:
         retrieved_docs = vector_store.similarity_search(text, k=args.k)
