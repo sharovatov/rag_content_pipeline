@@ -1,11 +1,10 @@
 import argparse
-import json
 import os
-
+from typing import Sequence, List, Literal
+from pydantic import BaseModel, ValidationError
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.documents import Document
-from typing import Sequence, Dict, Any
 
 from rag_utils import (
     DEFAULT_INPUTS,
@@ -49,7 +48,7 @@ def read_input_file(file: str) -> str:
         raise RuntimeError("Input file is empty.")
     return text
 
-def split_text_into_paragraphs(text: str) -> str:
+def split_text_into_paragraphs(text: str) -> list[str]:
     paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
     print(f"Text has {len(paragraphs)} paragraph(s)\n")
     return paragraphs
@@ -77,15 +76,23 @@ def generate_response(text: str, context: str, model: str) -> str:
     )
     return response.content
 
-def parse_verification_response(response: str) -> Dict[str, Any]:
+class Claim(BaseModel):
+    claim: str
+    status: Literal["supported", "contradicted", "not_covered"]
+    explanation: str
+
+class VerificationResponse(BaseModel):
+    claims: List[Claim]
+    overall: str
+
+def parse_verification_response(response: str) -> VerificationResponse:
     try:
-        result = json.loads(response)
-        return result
-    except json.JSONDecodeError:
-        raise RuntimeError(f"Failed to parse LLM response as JSON:\n{response}")
+        return VerificationResponse.model_validate_json(response)
+    except ValidationError as e:
+        print(f"Failed to parse LLM response as JSON:\n{response}\n{e}")
+        raise
 
-
-def print_formatted_result(result: Dict[str, Any], retrieved_docs: Sequence[Document]):
+def print_formatted_result(result: VerificationResponse, retrieved_docs: Sequence[Document]):
     # Colored output per claim
     status_colors = {
         "supported": "\033[32m",     # green
@@ -93,20 +100,19 @@ def print_formatted_result(result: Dict[str, Any], retrieved_docs: Sequence[Docu
         "not_covered": "\033[33m",   # yellow
     }
     reset = "\033[0m"
-
-    claims = result.get("claims", [])
-    for i, claim_obj in enumerate(claims, 1):
-        status = claim_obj.get("status", "not_covered")
+    claims = result.claims
+    for claim in claims:
+        status = claim.status
         color = status_colors.get(status, "")
         label = status.upper()
-        print(f"  {color}[{label}]{reset} {claim_obj.get('claim', '')}")
-        print(f"          {claim_obj.get('explanation', '')}")
+        print(f"  {color}[{label}]{reset} {claim.claim}")
+        print(f"          {claim.explanation}")
         print()
 
     # Summary counts
-    supported = sum(1 for c in claims if c.get("status") == "supported")
-    contradicted = sum(1 for c in claims if c.get("status") == "contradicted")
-    not_covered = sum(1 for c in claims if c.get("status") == "not_covered")
+    supported = sum(1 for c in claims if c.status == "supported")
+    contradicted = sum(1 for c in claims if c.status == "contradicted")
+    not_covered = sum(1 for c in claims if c.status == "not_covered")
 
     print(f"{'='*60}")
     print(f"Claims: {len(claims)} total — "
@@ -114,7 +120,7 @@ def print_formatted_result(result: Dict[str, Any], retrieved_docs: Sequence[Docu
           f"\033[31m{contradicted} contradicted\033[0m, "
           f"\033[33m{not_covered} not covered\033[0m")
     print()
-    print(f"Overall: {result.get('overall', 'N/A')}")
+    print(f"Overall: {result.overall}")
     print(f"{'='*60}")
 
     print(format_links(retrieved_docs))
