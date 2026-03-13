@@ -4,6 +4,8 @@ import os
 
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
+from langchain_core.documents import Document
+from typing import Sequence, Dict, Any
 
 from rag_utils import (
     DEFAULT_INPUTS,
@@ -52,7 +54,7 @@ def split_text_into_paragraphs(text: str) -> str:
     print(f"Text has {len(paragraphs)} paragraph(s)\n")
     return paragraphs
 
-def retrieve_relevant_chunks(vector_store, text: str, paragraphs: list[str], k: int) -> list[str]:
+def retrieve_relevant_chunks(vector_store, text: str, paragraphs: list[str], k: int) -> Sequence[Document]:
     if len(paragraphs) <= 1:
         return vector_store.similarity_search(text, k=k)
     else:
@@ -67,6 +69,55 @@ def retrieve_relevant_chunks(vector_store, text: str, paragraphs: list[str], k: 
                     seen_ids.add(doc.id)
                     retrieved_docs.append(doc)
         return retrieved_docs
+
+def generate_response(text: str, context: str, model: str) -> str:
+    llm = ChatOpenAI(model=model, temperature=0)
+    response = llm.invoke(
+        VERIFY_PROMPT.format(text=text, context=context)
+    )
+    return response.content
+
+def parse_verification_response(response: str) -> Dict[str, Any]:
+    try:
+        result = json.loads(response)
+        return result
+    except json.JSONDecodeError:
+        raise RuntimeError(f"Failed to parse LLM response as JSON:\n{response}")
+
+
+def print_formatted_result(result: Dict[str, Any], retrieved_docs: Sequence[Document]):
+    # Colored output per claim
+    status_colors = {
+        "supported": "\033[32m",     # green
+        "contradicted": "\033[31m",  # red
+        "not_covered": "\033[33m",   # yellow
+    }
+    reset = "\033[0m"
+
+    claims = result.get("claims", [])
+    for i, claim_obj in enumerate(claims, 1):
+        status = claim_obj.get("status", "not_covered")
+        color = status_colors.get(status, "")
+        label = status.upper()
+        print(f"  {color}[{label}]{reset} {claim_obj.get('claim', '')}")
+        print(f"          {claim_obj.get('explanation', '')}")
+        print()
+
+    # Summary counts
+    supported = sum(1 for c in claims if c.get("status") == "supported")
+    contradicted = sum(1 for c in claims if c.get("status") == "contradicted")
+    not_covered = sum(1 for c in claims if c.get("status") == "not_covered")
+
+    print(f"{'='*60}")
+    print(f"Claims: {len(claims)} total — "
+          f"\033[32m{supported} supported\033[0m, "
+          f"\033[31m{contradicted} contradicted\033[0m, "
+          f"\033[33m{not_covered} not covered\033[0m")
+    print()
+    print(f"Overall: {result.get('overall', 'N/A')}")
+    print(f"{'='*60}")
+
+    print(format_links(retrieved_docs))
 
 
 def main() -> None:
@@ -103,50 +154,9 @@ def main() -> None:
     print(f"Retrieved {len(retrieved_docs)} unique chunks\n")
 
     context = "\n\n".join(doc.page_content for doc in retrieved_docs)
-    llm = ChatOpenAI(model=args.model, temperature=0)
-    response = llm.invoke(
-        VERIFY_PROMPT.format(text=text, context=context)
-    )
-
-    try:
-        result = json.loads(response.content)
-    except json.JSONDecodeError:
-        print("Failed to parse LLM response as JSON:")
-        print(response.content)
-        return
-
-    # Colored output per claim
-    status_colors = {
-        "supported": "\033[32m",     # green
-        "contradicted": "\033[31m",  # red
-        "not_covered": "\033[33m",   # yellow
-    }
-    reset = "\033[0m"
-
-    claims = result.get("claims", [])
-    for i, claim_obj in enumerate(claims, 1):
-        status = claim_obj.get("status", "not_covered")
-        color = status_colors.get(status, "")
-        label = status.upper()
-        print(f"  {color}[{label}]{reset} {claim_obj.get('claim', '')}")
-        print(f"          {claim_obj.get('explanation', '')}")
-        print()
-
-    # Summary counts
-    supported = sum(1 for c in claims if c.get("status") == "supported")
-    contradicted = sum(1 for c in claims if c.get("status") == "contradicted")
-    not_covered = sum(1 for c in claims if c.get("status") == "not_covered")
-
-    print(f"{'='*60}")
-    print(f"Claims: {len(claims)} total — "
-          f"\033[32m{supported} supported\033[0m, "
-          f"\033[31m{contradicted} contradicted\033[0m, "
-          f"\033[33m{not_covered} not covered\033[0m")
-    print()
-    print(f"Overall: {result.get('overall', 'N/A')}")
-    print(f"{'='*60}")
-
-    print(format_links(retrieved_docs))
+    response = generate_response(text, context, args.model)
+    result = parse_verification_response(response)
+    print_formatted_result(result, retrieved_docs)
 
 
 if __name__ == "__main__":
