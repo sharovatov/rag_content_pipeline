@@ -1,9 +1,10 @@
 import argparse
-import json
 import os
-
+from typing import Sequence, List, Literal
+from pydantic import BaseModel, ValidationError
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
+from langchain_core.documents import Document
 
 from rag_utils import (
     DEFAULT_INPUTS,
@@ -40,6 +41,90 @@ Respond with JSON only:
   "overall": "brief overall assessment"
 }}"""
 
+def read_input_file(file: str) -> str:
+    with open(file, "r", encoding="utf-8") as f:
+        text = f.read().strip()
+    if not text:
+        raise RuntimeError("Input file is empty.")
+    return text
+
+def split_text_into_paragraphs(text: str) -> list[str]:
+    paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+    print(f"Text has {len(paragraphs)} paragraph(s)\n")
+    return paragraphs
+
+def retrieve_relevant_chunks(vector_store, text: str, paragraphs: list[str], k: int) -> Sequence[Document]:
+    if len(paragraphs) <= 1:
+        return vector_store.similarity_search(text, k=k)
+    else:
+        print(f"Retrieving relevant chunks per paragraph...\n")
+        seen_ids = set()
+        retrieved_docs = []
+        for para in paragraphs:
+            para_docs = vector_store.similarity_search(para, k=k)
+
+            for doc in para_docs:
+                if doc.id not in seen_ids:
+                    seen_ids.add(doc.id)
+                    retrieved_docs.append(doc)
+        return retrieved_docs
+
+def generate_response(text: str, context: str, model: str) -> str:
+    llm = ChatOpenAI(model=model, temperature=0)
+    response = llm.invoke(
+        VERIFY_PROMPT.format(text=text, context=context)
+    )
+    return response.content
+
+class Claim(BaseModel):
+    claim: str
+    status: Literal["supported", "contradicted", "not_covered"]
+    explanation: str
+
+class VerificationResponse(BaseModel):
+    claims: List[Claim]
+    overall: str
+
+def parse_verification_response(response: str) -> VerificationResponse:
+    try:
+        return VerificationResponse.model_validate_json(response)
+    except ValidationError as e:
+        print(f"Failed to parse LLM response as JSON:\n{response}\n{e}")
+        raise
+
+def print_formatted_result(result: VerificationResponse, retrieved_docs: Sequence[Document]):
+    # Colored output per claim
+    status_colors = {
+        "supported": "\033[32m",     # green
+        "contradicted": "\033[31m",  # red
+        "not_covered": "\033[33m",   # yellow
+    }
+    reset = "\033[0m"
+    claims = result.claims
+    for claim in claims:
+        status = claim.status
+        color = status_colors.get(status, "")
+        label = status.upper()
+        print(f"  {color}[{label}]{reset} {claim.claim}")
+        print(f"          {claim.explanation}")
+        print()
+
+    # Summary counts
+    supported = sum(1 for c in claims if c.status == "supported")
+    contradicted = sum(1 for c in claims if c.status == "contradicted")
+    not_covered = sum(1 for c in claims if c.status == "not_covered")
+
+    print(f"{'='*60}")
+    print(f"Claims: {len(claims)} total — "
+          f"\033[32m{supported} supported\033[0m, "
+          f"\033[31m{contradicted} contradicted\033[0m, "
+          f"\033[33m{not_covered} not covered\033[0m")
+    print()
+    print(f"Overall: {result.overall}")
+    print(f"{'='*60}")
+
+    print(format_links(retrieved_docs))
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Verify text claims against RAG corpus.")
@@ -56,34 +141,17 @@ def main() -> None:
     if not os.environ.get("OPENAI_API_KEY"):
         raise RuntimeError("OPENAI_API_KEY is not set in the environment.")
 
-    with open(args.file, "r", encoding="utf-8") as f:
-        text = f.read().strip()
-    if not text:
-        raise RuntimeError("Input file is empty.")
+    text = read_input_file(args.file)
+    paragraphs = split_text_into_paragraphs(text)
 
-    print(f"Verifying text from {args.file} ({len(text)} chars)\n")
+    print(f"Verifying text from {args.file} ({len(text)} characters)\n")
 
     vector_store = build_vector_store(
         input_paths=args.input,
-        embedding_model=args.embedding_model,
-        limit=args.limit,
+        embedding_model=args.embedding_model,limit=args.limit,
     )
 
-    # Adaptive retrieval: split into paragraphs
-    paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
-
-    if len(paragraphs) <= 1:
-        retrieved_docs = vector_store.similarity_search(text, k=args.k)
-    else:
-        print(f"Text has {len(paragraphs)} paragraphs, retrieving per paragraph...\n")
-        seen_ids = set()
-        retrieved_docs = []
-        for para in paragraphs:
-            para_docs = vector_store.similarity_search(para, k=args.k)
-            for doc in para_docs:
-                if doc.id not in seen_ids:
-                    seen_ids.add(doc.id)
-                    retrieved_docs.append(doc)
+    retrieved_docs = retrieve_relevant_chunks(vector_store, text, paragraphs, args.k)
 
     if not retrieved_docs:
         print("No relevant sources found in the corpus.")
@@ -92,50 +160,9 @@ def main() -> None:
     print(f"Retrieved {len(retrieved_docs)} unique chunks\n")
 
     context = "\n\n".join(doc.page_content for doc in retrieved_docs)
-    llm = ChatOpenAI(model=args.model, temperature=0)
-    response = llm.invoke(
-        VERIFY_PROMPT.format(text=text, context=context)
-    )
-
-    try:
-        result = json.loads(response.content)
-    except json.JSONDecodeError:
-        print("Failed to parse LLM response as JSON:")
-        print(response.content)
-        return
-
-    # Colored output per claim
-    status_colors = {
-        "supported": "\033[32m",     # green
-        "contradicted": "\033[31m",  # red
-        "not_covered": "\033[33m",   # yellow
-    }
-    reset = "\033[0m"
-
-    claims = result.get("claims", [])
-    for i, claim_obj in enumerate(claims, 1):
-        status = claim_obj.get("status", "not_covered")
-        color = status_colors.get(status, "")
-        label = status.upper()
-        print(f"  {color}[{label}]{reset} {claim_obj.get('claim', '')}")
-        print(f"          {claim_obj.get('explanation', '')}")
-        print()
-
-    # Summary counts
-    supported = sum(1 for c in claims if c.get("status") == "supported")
-    contradicted = sum(1 for c in claims if c.get("status") == "contradicted")
-    not_covered = sum(1 for c in claims if c.get("status") == "not_covered")
-
-    print(f"{'='*60}")
-    print(f"Claims: {len(claims)} total — "
-          f"\033[32m{supported} supported\033[0m, "
-          f"\033[31m{contradicted} contradicted\033[0m, "
-          f"\033[33m{not_covered} not covered\033[0m")
-    print()
-    print(f"Overall: {result.get('overall', 'N/A')}")
-    print(f"{'='*60}")
-
-    print(format_links(retrieved_docs))
+    response = generate_response(text, context, args.model)
+    result = parse_verification_response(response)
+    print_formatted_result(result, retrieved_docs)
 
 
 if __name__ == "__main__":
