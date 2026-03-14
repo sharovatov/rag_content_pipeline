@@ -12,22 +12,62 @@ from rag_utils import (
     format_links,
 )
 
+DECOMPOSE_PROMPT = """You are a fact-checking assistant. You have been provided with a piece of input text, that you have to decompose into claims.
 
-VERIFY_PROMPT = """You are a fact-checking assistant. You have access to a knowledge base of content from the Qase blog and help center.
-
-Your task: verify whether the claims in the given text are supported by the provided context.
+Your task: decompose the input text into claims. Each claim should be a distinct statement that can be verified or contradicted by the knowledge base.
 
 Instructions:
 1. Identify each distinct claim in the text.
-2. For each claim, categorize it as one of:
+2. Respond with JSON only:
+{{
+  "claims": [
+    {{"claim": "...",}},
+    ...
+  ],
+}}
+
+--------EXAMPLES-----------
+Example 1
+Input: {{
+    "input_text": "Large Language Models (LLM) are arguably the most effective thinking machines that are also widely accessible. I use LLMs extensively at work and otherwise - they have multiplied my productivity. But given how much I use them, I took a step back and tested them. Much like the alluring songs of the sirens, they are not without their risks."  
+}}
+Output: {{
+    "claims": [
+        "Large Language Models (LLM) are effective thinking machines that are widely accessible.",
+        "Large Language Models are not without their risks."
+    ]
+}}
+
+Example 2
+Input: {{
+    "input_text": "Albert Einstein was a German theoretical physicist. He developed the theory of relativity and also contributed to the development of quantum mechanics.",
+}}
+Output: {{
+    "claims": [
+        "Albert Einstein was a German physicist.",
+        "Albert Einstein developed relativity and contributed to quantum mechanics."
+    ]
+}}
+-----------------------------
+Now perform the same with the following input text:
+{input_text}
+Output:
+"""
+
+VERIFY_PROMPT = """You are a fact-checking assistant. You have access to a knowledge base of content from the Qase blog and help center.
+
+Your task: verify whether the claims provided are supported by the context supplied to you.
+
+Instructions:
+1. For each claim, categorize it as one of:
    - "supported" — the context provides evidence that supports this claim
    - "contradicted" — the context provides evidence that contradicts this claim
    - "not_covered" — the context does not contain enough information to verify this claim
-3. Provide a brief explanation for each categorization.
-4. Give an overall assessment.
+2. Provide a brief explanation for each categorization.
+3. Give an overall assessment.
 
 Text to verify:
-{text}
+{claims}
 
 Context from knowledge base:
 {context}
@@ -69,10 +109,17 @@ def retrieve_relevant_chunks(vector_store, text: str, paragraphs: list[str], k: 
                     retrieved_docs.append(doc)
         return retrieved_docs
 
-def generate_response(text: str, context: str, model: str) -> str:
+def decompose_input_text_into_claims(input_text: str, model: str) -> list[str]:
     llm = ChatOpenAI(model=model, temperature=0)
     response = llm.invoke(
-        VERIFY_PROMPT.format(text=text, context=context)
+        DECOMPOSE_PROMPT.format(input_text=input_text)
+    )
+    return response.content
+
+def verify_claims(claims: list[str], context: str, model: str) -> list[str]:
+    llm = ChatOpenAI(model=model, temperature=0)
+    response = llm.invoke(
+        VERIFY_PROMPT.format(claims=claims, context=context)
     )
     return response.content
 
@@ -160,7 +207,8 @@ def main() -> None:
     print(f"Retrieved {len(retrieved_docs)} unique chunks\n")
 
     context = "\n\n".join(doc.page_content for doc in retrieved_docs)
-    response = generate_response(text, context, args.model)
+    claims = decompose_input_text_into_claims(input_text=text, model=args.model)
+    response = verify_claims(claims=claims, context=context, model=args.model)
     result = parse_verification_response(response)
     print_formatted_result(result, retrieved_docs)
 
