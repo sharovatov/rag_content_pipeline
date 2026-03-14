@@ -4,14 +4,16 @@ RAG-based content verification pipeline. Checks new content against an existing 
 
 ## What's here
 
-- **`rag_ask_qn.py`** — Ask questions against the content corpus (Qase blog + help center)
-- **`rag_verify.py`** — Verify claims in a text file against the corpus. Per-paragraph retrieval, per-claim categorization (supported / contradicted / not covered)
-- **`voice_check.py`** — Check an article against brand voice & tone guidelines. Single LLM call, no RAG
-- **`rag_eval.py`** — RAGAS evaluation (faithfulness + context recall)
-- **`rag_eval_simple.py`** — Simple LLM-judge evaluation (aligned / not aligned)
-- **`blog_slice_plaintext.py`** — Semantic chunker for preparing your own content corpus (respects `blog_skip_slugs.txt` to exclude posts)
+- `**rag_ask_qn.py**` — Ask questions against the content corpus (Qase blog + help center)
+- `**rag_verify.py**` — Verify claims in a text file against the corpus. Per-paragraph retrieval, per-claim categorization (supported / contradicted / not covered)
+- `**voice_check.py**` — Check an article against brand voice & tone guidelines. Single LLM call, no RAG
+- `**rag_eval.py**` — RAGAS evaluation (faithfulness + context recall)
+- `**rag_eval_simple.py**` — Simple LLM-judge evaluation (aligned / not aligned)
+- `**blog_slice_plaintext.py**` — Semantic chunker for preparing your own content corpus (respects `blog_skip_slugs.txt` to exclude posts)
 
 ## Setup
+
+Recommended: Use python version 3.12. 
 
 ```bash
 python -m venv .venv
@@ -25,11 +27,13 @@ cp .env.example .env
 ### Ask questions to the corpus
 
 The following command will ask a question with default argument values:
+
 ```bash
 .venv/bin/python rag_ask_qn.py --question "What are test suites in Qase?"
 ```
 
 The following command will ask a question with 5 similar chunks, and with the model set to gpt-4o:
+
 ```bash
 .venv/bin/python rag_ask_qn.py --k 5 --model gpt-4o
 ```
@@ -62,11 +66,11 @@ The following command will ask a question with 5 similar chunks, and with the mo
 
 The repo includes pre-chunked content from publicly available sources:
 
-- **`blog_chunks.jsonl`** — Qase blog posts (106 posts, 50 excluded via `blog_skip_slugs.txt`)
-- **`help_chunks.jsonl`** — Qase help center articles
-- **`blog_skip_slugs.txt`** — Blog posts excluded from the corpus (case studies, product updates, dated pieces, duplicates)
-- **`eval_blog_ideas.jsonl`** — 240 eval questions generated from blog key ideas
-- **`qase_voice_tone.md`** — Qase brand voice & tone guidelines
+- `**blog_chunks.jsonl**` — Qase blog posts (106 posts, 50 excluded via `blog_skip_slugs.txt`)
+- `**help_chunks.jsonl**` — Qase help center articles
+- `**blog_skip_slugs.txt**` — Blog posts excluded from the corpus (case studies, product updates, dated pieces, duplicates)
+- `**eval_blog_ideas.jsonl**` — 240 eval questions generated from blog key ideas
+- `**qase_voice_tone.md**` — Qase brand voice & tone guidelines
 
 ## Using your own content
 
@@ -91,4 +95,10 @@ Voice & tone check is a separate path: guidelines + article → single LLM call 
 ## Environment
 
 Requires `.env` with:
-- `OPENAI_API_KEY` — Required for embeddings and LLM
+
+- `OPENAI_API_KEY` — Required for embeddings and LLM#
+- `LANGSMITH_TRACING` — Optional for LangSmith tracing
+- `LANGSMITH_ENDPOINT` — Optional for LangSmith tracing 
+- `LANGSMITH_API_KEY` — Optional for LangSmith tracing
+- `LANGSMITH_PROJECT` — Optional for LangSmith tracing
+
