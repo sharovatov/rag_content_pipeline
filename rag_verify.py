@@ -92,12 +92,11 @@ Input: {{
 }}
 Output: {{
     "claims": [
-            {"claim": "Odysseus was a Greek hero who sailed back home from the Trojan war.", "status": "not_covered", "explanation": "The context does not provide any information about Odysseus or the Trojan war."},
-            {"claim": "Large Language Models are effective thinking machines that are widely accessible.", "status": "supported", "explanation": "The context states that Large Language Models are widely accessible."},
-            {"claim": "Large Language Models are not without their limitations.", "status": "supported", "explanation": "The context states that LLMs come with risks and limitations."},
-            {"claim": "Large Language Models are not prone to human biases, since they are machines.", "status": "contradicted", "explanation": "The context states that LLMs can be biased, hacked, and used to spread misinformation."}
-        ]
-    ],
+            {{"claim": "Odysseus was a Greek hero who sailed back home from the Trojan war.", "status": "not_covered", "explanation": "The context does not provide any information about Odysseus or the Trojan war."}},
+            {{"claim": "Large Language Models are effective thinking machines that are widely accessible.", "status": "supported", "explanation": "The context states that Large Language Models are widely accessible."}},
+            {{"claim": "Large Language Models are not without their limitations.", "status": "supported", "explanation": "The context states that LLMs come with risks and limitations."}},
+            {{"claim": "Large Language Models are not prone to human biases, since they are machines.", "status": "contradicted", "explanation": "The context states that LLMs can be biased, hacked, and used to spread misinformation."}}
+        ],
     "overall": "A claim about the lack of biases in Large Language Models is contradicted by the context. Other Large Language Model claims are supported, while the claim about Odysseus is not covered."
 }}
 --------------------------------
