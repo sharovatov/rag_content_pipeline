@@ -8,3 +8,4 @@ langchain-core==0.2.43
 langchain-openai==0.1.25
 python-dotenv==1.2.2
 ragas==0.3.9
+pydantic==2.12.5
