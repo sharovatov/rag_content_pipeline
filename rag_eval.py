@@ -101,6 +101,7 @@ def main() -> None:
     result = evaluate(
         dataset,
         metrics=[Faithfulness(), ContextRecall()],
+        llm=llm,
     )
 
     df = result.to_pandas()
