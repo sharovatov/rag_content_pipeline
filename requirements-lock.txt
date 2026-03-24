@@ -88,7 +88,7 @@ packaging==24.2
 pandas==3.0.1
 pillow==12.1.1
 platformdirs==4.9.4
-posthog==7.9.12
+posthog==5.4.0
 pre_commit==4.5.1
 propcache==0.4.1
 protobuf==6.33.5
